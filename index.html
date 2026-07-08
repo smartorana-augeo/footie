@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Footie</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2379b043'/%3E%3Ccircle cx='8' cy='8' r='5' fill='%23ffffff'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%23222222'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-root">
+      <div id="screen-menu" class="screen screen--visible">
+        <div class="menu-panel">
+          <h1 id="menu-title" class="menu-title"></h1>
+          <p id="menu-subtitle" class="menu-subtitle"></p>
+          <p id="menu-keys" class="keys"></p>
+          <p id="menu-difficulty-heading" class="menu-heading-small"></p>
+          <div id="difficulty-select" class="difficulty-select"></div>
+          <div class="menu-actions">
+            <button type="button" id="btn-start" class="btn"><span class="btn__label"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="screen-over" class="screen" hidden>
+        <div class="menu-panel over-panel">
+          <h2 id="over-heading" class="over-heading"></h2>
+          <p id="over-score" class="over-score"></p>
+          <div class="menu-actions">
+            <button type="button" id="btn-rematch" class="btn"><span class="btn__label"></span></button>
+            <button type="button" id="btn-menu" class="btn btn--secondary"><span class="btn__label"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="hud" hidden>
+        <div id="hud-legend"></div>
+        <div id="hud-score"></div>
+        <div id="hud-clock"></div>
+        <div id="hud-formation"></div>
+      </div>
+      <div id="fx-layer"></div>
+    </div>
+  </div>
+
+  <!-- Classic scripts in dependency order (no ES modules, no fetch) so the
+       game runs when this file is opened directly from disk (file://). -->
+  <script src="src/namespace.js"></script>
+  <script src="src/engine/EventBus.js"></script>
+  <script src="src/engine/GameLoop.js"></script>
+  <script src="src/engine/GameStateMachine.js"></script>
+  <script src="src/engine/InputEngine.js"></script>
+  <script src="src/engine/TilesetEngine.js"></script>
+  <script src="src/engine/SpriteSheetEngine.js"></script>
+  <script src="src/engine/RenderEngine.js"></script>
+  <script src="src/engine/BehaviorEngine.js"></script>
+  <script src="src/defs/tuningDefs.js"></script>
+  <script src="src/defs/fieldDefs.js"></script>
+  <script src="src/defs/tilesetDefs.js"></script>
+  <script src="src/defs/spriteDefs.js"></script>
+  <script src="src/defs/formationDefs.js"></script>
+  <script src="src/defs/teamDefs.js"></script>
+  <script src="src/defs/uiDefs.js"></script>
+  <script src="src/behaviors/kickHelper.js"></script>
+  <script src="src/behaviors/implementations/moveToTarget.js"></script>
+  <script src="src/behaviors/implementations/controlInput.js"></script>
+  <script src="src/behaviors/implementations/dribble.js"></script>
+  <script src="src/behaviors/implementations/ballPhysics.js"></script>
+  <script src="src/behaviors/implementations/possession.js"></script>
+  <script src="src/behaviors/implementations/aiFieldPlayer.js"></script>
+  <script src="src/behaviors/implementations/aiGoalie.js"></script>
+  <script src="src/behaviors/implementations/separatePlayers.js"></script>
+  <script src="src/behaviors/implementations/animate.js"></script>
+  <script src="src/behaviors/implementations/animateFan.js"></script>
+  <script src="src/behaviors/createBehavior.js"></script>
+  <script src="src/things/createThing.js"></script>
+  <script src="src/things/painters.js"></script>
+  <script src="src/game/StadiumBuilder.js"></script>
+  <script src="src/game/ui/UISystem.js"></script>
+  <script src="src/game/FootieGame.js"></script>
+  <script src="src/main.js"></script>
+  <script>
+    // Boot check: if the game didn't construct, name the first missing piece
+    // right on the menu (diagnoses script blocking by shields/extensions on
+    // file:// — a blocked def cascades into a dead page otherwise).
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        var F = window.Footie
+        if (F && F.game && F.game.instance) return
+        var missing = []
+        if (!F) missing.push('namespace.js')
+        else {
+          var expect = {
+            engine: ['EventBus', 'GameLoop', 'GameStateMachine', 'InputEngine', 'TilesetEngine', 'SpriteSheetEngine', 'RenderEngine', 'BehaviorEngine'],
+            defs:   ['TUNING', 'FIELD', 'TILESET_DEF', 'SPRITE_DEF', 'FORMATIONS', 'TEAM_DEFS', 'UI'],
+            things: ['createThing', 'painters'],
+            game:   ['StadiumBuilder', 'UISystem', 'FootieGame'],
+          }
+          for (var ns in expect) expect[ns].forEach(function (k) {
+            if (!F[ns] || !F[ns][k]) missing.push(ns + '.' + k)
+          })
+          if (!missing.length) missing.push('main.js threw at runtime — see console')
+        }
+        console.error('Footie boot failed. Missing:', missing.join(', '))
+        var el = document.getElementById('menu-subtitle')
+        if (el) {
+          el.textContent = 'boot failed — missing: ' + missing.join(', ')
+          el.style.color = '#c22'
+          el.style.fontStyle = 'normal'
+        }
+        var title = document.getElementById('menu-title')
+        if (title && !title.textContent) title.textContent = 'FOOTIE'
+      }, 800)
+    })
+  </script>
+</body>
+</html>
