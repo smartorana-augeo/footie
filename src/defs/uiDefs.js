@@ -16,7 +16,9 @@
         { id: 'hard',   label: 'Hard' },
       ],
       keys: [
-        ['move',      'click / drag'],
+        ['move',      'mouse'],
+        ['pass',      'space (aim near)'],
+        ['shoot',     'space (aim far)'],
         ['switch',    'shift'],
         ['formation', 'alt'],
         ['pause',     'esc'],

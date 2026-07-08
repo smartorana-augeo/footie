@@ -2,14 +2,14 @@
   'use strict'
 
   /**
-   * Mouse control for the directly controlled player. Click and click-drag
-   * behave identically: while the button is down the move target tracks the
-   * pointer (converted to world space and clamped to the field); on release
-   * the last target sticks until reached or replaced.
+   * Mouse control for the directly controlled player. The move target tracks
+   * the hovering pointer at all times (converted to world space and clamped
+   * to the field) — no button needed; on touch, dragging does the same.
    *
-   * Kicking is automatic: with possession, a pointer target beyond
-   * KICK_MIN_DISTANCE kicks toward it, power scaling with distance
-   * (short = soft pass, long = strong shot). No separate kick button.
+   * Kicking is on Space: with possession, Space kicks toward the pointer
+   * when it's beyond KICK_MIN_DISTANCE, power scaling with distance
+   * (short = soft pass, long = strong shot). Touch has no keyboard, so
+   * there a press (tap) kicks instead.
    */
   const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi)
 
@@ -18,7 +18,7 @@
       update(thing, ctx) {
         if (!thing.isControlled || ctx.world.freeze) return
         const input = ctx.input
-        if (!input.pointerDown || input.pointerX === null) return
+        if (input.pointerX === null) return
 
         const rect  = ctx.field.rect
         const world = ctx.view.toWorld(input.pointerX, input.pointerY)
@@ -29,7 +29,9 @@
         thing.moveTarget = target
 
         const K = ctx.tuning.kick
-        if (ctx.world.ball.owner === thing && thing.kickCooldown <= 0) {
+        const wantsKick = input.pressed.includes(' ') ||
+          (input.pointerDown && input.pointerType === 'touch')
+        if (wantsKick && ctx.world.ball.owner === thing && thing.kickCooldown <= 0) {
           const dist = Math.hypot(target.x - thing.x, target.y - thing.y)
           if (dist > K.minDistance) {
             const power = clamp(dist * K.powerScale, K.passPower, K.shotPower)

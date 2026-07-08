@@ -141,6 +141,19 @@ html, body {
   color: #fff;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.55);
 }
+#hud-legend {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+#hud-legend .keys__line { display: flex; justify-content: space-between; gap: 14px; }
+#hud-legend strong { text-transform: uppercase; letter-spacing: 1px; }
+
 #hud-score { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
 #hud-clock { font-size: 15px; font-weight: bold; color: var(--gold); }
 #hud-formation { font-size: 11px; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px; }

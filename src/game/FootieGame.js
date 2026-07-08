@@ -147,6 +147,12 @@
         if (power > 200 && this.sm.is(STATE.PLAYING))
           this._crowdReact(by.team, 1.2)
       })
+      // Gaining possession pulls control to the new carrier — field players
+      // only; the goalie's save/clear stays AI-driven (control it via Shift).
+      this.events.on('possession-changed', ({ to }) => {
+        if (to.team === 'player' && !to.isGoalie && !to.isControlled)
+          this._setControlled(to)
+      })
     }
 
     startMatch() { this.sm.transition(STATE.KICKOFF) }
