@@ -47,7 +47,8 @@
     const ball  = world.ball
     const AI    = ctx.tuning.ai
     const mates = world.players.filter(p =>
-      p.team === team && !p.isGoalie && !p.isControlled && p.alive !== false)
+      p.team === team && !p.isGoalie && !p.isControlled && p.alive !== false &&
+      !(p.downT > 0) && !(p.frozenT > 0) && !p.slide)   // bodies on the turf hold no role
     if (mates.length === 0) return
 
     const owner          = ball.owner
@@ -76,8 +77,8 @@
       take(nearest({ x: ownX, y: ctx.field.center.y }), 'Defender')
     }
 
-    // The rest support — wide if they're a wide mid.
-    for (const m of unassigned) m.aiRole = (m.role === 'ML' || m.role === 'MR') ? 'WideSupport' : 'Support'
+    // The rest support — wide if their roster slot is a wide lane.
+    for (const m of unassigned) m.aiRole = m.wide ? 'WideSupport' : 'Support'
   }
 
   function ensureTactics(ctx, team) {
@@ -93,8 +94,12 @@
   function formationAnchor(ctx, thing) {
     const world = ctx.world
     const F     = ctx.field
+    const FORMATIONS = window.Footie.defs.FORMATIONS
+    // The player team plays its chosen shape + Alt-cycled mode; the enemy
+    // always plays the default shape in balanced (by design — see docs).
+    const shape = thing.team === 'player' ? world.formationShape : FORMATIONS.defaultShape
     const mode  = thing.team === 'player' ? world.formation : 'balanced'
-    const table = window.Footie.defs.FORMATIONS[mode][thing.role]
+    const table = FORMATIONS.tables[shape]?.[mode]?.[thing.role]
     if (!table) return { x: F.center.x, y: F.center.y }
 
     const owner       = world.ball.owner
@@ -113,6 +118,18 @@
 
   function interceptPoint(ctx, thing) {
     const ball = ctx.world.ball
+    const AIR  = ctx.tuning.ballAir
+    const rect = ctx.field.rect
+    // High ball: run to where it will LAND (time-to-ground from z/vz/gravity)
+    // instead of chasing a point it will sail over.
+    if (ball.z > AIR.pickupMaxZ) {
+      const g = AIR.gravity
+      const t = (ball.vz + Math.sqrt(ball.vz * ball.vz + 2 * g * ball.z)) / g
+      return {
+        x: clamp(ball.x + ball.vx * t, rect.x, rect.x + rect.w),
+        y: clamp(ball.y + ball.vy * t, rect.y, rect.y + rect.h),
+      }
+    }
     const maxSpeed = ctx.tuning.player.maxSpeed
     // Two-pass predictive intercept: aim at where the ball will be by the
     // time we can get there.
@@ -121,7 +138,6 @@
       const t = dist(thing, p) / maxSpeed
       p = { x: ball.x + ball.vx * t * 0.9, y: ball.y + ball.vy * t * 0.9 }
     }
-    const rect = ctx.field.rect
     return { x: clamp(p.x, rect.x, rect.x + rect.w), y: clamp(p.y, rect.y, rect.y + rect.h) }
   }
 
@@ -192,7 +208,8 @@
     const world = ctx.world
     const F     = ctx.field
     const AI    = ctx.tuning.ai
-    const K     = ctx.tuning.kick
+    const SHOT  = ctx.tuning.shot
+    const PASS  = ctx.tuning.pass
     // Player-team AI plays a fixed snappy profile; the enemy uses difficulty.
     const prof = thing.team === 'enemy'
       ? ctx.difficulty
@@ -216,7 +233,8 @@
     const mouth = F.goalMouth
     const shotY = clamp(thing.y, mouth.top + 8, mouth.bottom - 8) + (Math.random() * 2 - 1) * prof.aimNoise
     if (dist(thing, goal) < AI.shotRange && laneClear(ctx, thing, { x: goal.x, y: shotY }, thing.team)) {
-      helpers.kick(ctx, thing, goal.x + Math.sign(goal.x - thing.x) * 4, shotY, K.shotPower)
+      // A touch of loft so AI shots read like shots (still under the bar).
+      helpers.kick(ctx, thing, goal.x + Math.sign(goal.x - thing.x) * 4, shotY, SHOT.tapPower, { vz: 12 })
       return
     }
 
@@ -236,7 +254,7 @@
           options.reduce((a, b) => ((a.x - thing.x) * dir > (b.x - thing.x) * dir ? a : b))
         if (Math.random() < 0.55 * prof.passBias + 0.3) {
           const lead = { x: pick.x + pick.vx * 0.25, y: pick.y + pick.vy * 0.25 }
-          const power = clamp(dist(thing, lead) * K.powerScale, K.passPower, K.shotPower)
+          const power = clamp(dist(thing, lead) * 1.2, PASS.powerMin, PASS.powerMax)
           helpers.kick(ctx, thing, lead.x, lead.y, power)
           thing.ai.passCooldown = AI.passCooldown
           return
@@ -254,18 +272,45 @@
     }
   }
 
+  // ── Slide attempts (BallChaser only) ────────────────────────────────────
+
+  function maybeSlide(thing, ctx) {
+    const SL    = ctx.tuning.slide
+    const owner = ctx.world.ball.owner
+    if (!owner || owner.team === thing.team) return
+    const d = dist(thing, owner)
+    if (d <= 0 || d > SL.aiRange) return
+    const tx = (owner.x - thing.x) / d
+    const ty = (owner.y - thing.y) / d
+    if (thing.vx * tx + thing.vy * ty <= 0) return                          // must be closing
+    if ((thing.faceX ?? 1) * tx + (thing.faceY ?? 0) * ty <= 0.85) return   // must be aligned
+    // Throttle: at most one roll of the dice per second, even on a "no".
+    thing.ai.slideCooldownT = 1
+    // Difficulty shapes the ENEMY only — the player's AI teammates keep a
+    // fixed profile (easy must not switch off YOUR defenders' tackles).
+    const aggression = thing.team === 'enemy' ? ctx.difficulty.slideAggression : 1.0
+    if (Math.random() >= SL.aiChance * aggression) return
+    if (helpers.startSlide(thing, ctx)) thing.ai.slideCooldownT = SL.aiCooldown
+  }
+
   // ── The behavior ────────────────────────────────────────────────────────
 
   window.Footie.behaviors.implementations.aiFieldPlayer = function aiFieldPlayer() {
     return {
       update(thing, ctx, dt) {
         if (thing.isControlled || ctx.world.freeze) return
+        if (thing.downT > 0 || thing.frozenT > 0 || thing.slide) return
         ensureTactics(ctx, thing.team)
+
+        if (thing.ai.slideCooldownT > 0) thing.ai.slideCooldownT -= dt
 
         if (thing.hasBall) { carrierUpdate(thing, ctx, dt) ; return }
 
         const target = roleTarget(ctx, thing) ?? formationAnchor(ctx, thing)
         thing.moveTarget = avoidTeammates(ctx, thing, target)
+
+        if (thing.aiRole === 'BallChaser' && thing.ai.slideCooldownT <= 0)
+          maybeSlide(thing, ctx)
       },
     }
   }

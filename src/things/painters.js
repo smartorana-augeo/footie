@@ -29,7 +29,7 @@
       ctx.ellipse(thing.x, thing.y + 1, 6, 2.5, 0, 0, Math.PI * 2)
       ctx.fill()
 
-      if (thing.isControlled) {
+      if (thing.isControlled && !(thing.downT > 0)) {
         ctx.strokeStyle = PALETTE.white
         ctx.lineWidth = 1
         ctx.beginPath()
@@ -37,9 +37,27 @@
         ctx.stroke()
       }
 
+      // Knocked down: the sheet has no prone art, so lay the sprite on its
+      // back (SpriteSheetEngine can't rotate — the painter owns the transform).
+      if (thing.downT > 0) {
+        ctx.save()
+        ctx.translate(thing.x, thing.y)
+        ctx.rotate(thing.flipX ? Math.PI / 2 : -Math.PI / 2)
+        ctx.translate(-thing.x, -thing.y)
+      }
+      // Sliding: lean the kick pose into the lunge.
+      else if (thing.slide && thing.slide.phase === 'sliding') {
+        ctx.save()
+        ctx.translate(thing.x, thing.y)
+        ctx.rotate((thing.flipX ? -1 : 1) * 0.5)
+        ctx.translate(-thing.x, -thing.y)
+      }
+      const restore = thing.downT > 0 || (thing.slide && thing.slide.phase === 'sliding')
+
       const key = `${thing.team}${thing.variant}-${thing.anim.name}`
       if (sheets && sheets.ready(key)) {
         sheets.draw(ctx, key, frameOf(thing), thing.x, thing.y, { flipX: thing.flipX })
+        if (restore) ctx.restore()
         return
       }
 
@@ -52,25 +70,34 @@
       ctx.fillRect(thing.x - 4, thing.y - 12, 8, 8)
       ctx.fillStyle = PALETTE.skin
       ctx.fillRect(thing.x - 3, thing.y - 18, 6, 6)
+      if (restore) ctx.restore()
     },
 
-    /** The ball, with its own tiny shadow. (x, y) is the ball center. */
+    /**
+     * The ball. (x, y) is the GROUND position (physics/sorting space); an
+     * airborne ball draws lifted by z with the shadow left on the turf —
+     * the widening shadow-to-sprite gap IS the height cue.
+     */
     ball(ctx, thing, view, { sheets }) {
+      const z = thing.z ?? 0
+      const shadowScale = Math.max(0.3, 1 - z / 60)
       ctx.fillStyle = PALETTE.shadow
       ctx.beginPath()
-      ctx.ellipse(thing.x, thing.y + 3, 3, 1.2, 0, 0, Math.PI * 2)
+      ctx.ellipse(thing.x, thing.y + 3, 3 * shadowScale, 1.2 * shadowScale, 0, 0, Math.PI * 2)
       ctx.fill()
 
+      const drawY = thing.y - z * 0.9
+      const lift  = 1 + z / 80   // subtly larger when closer to "camera"
       if (sheets && sheets.ready('ball')) {
-        sheets.draw(ctx, 'ball', 0, thing.x, thing.y, { scale: window.Footie.defs.SPRITE_DEF.ballDrawScale })
+        sheets.draw(ctx, 'ball', 0, thing.x, drawY, { scale: window.Footie.defs.SPRITE_DEF.ballDrawScale * lift })
         return
       }
       ctx.fillStyle = PALETTE.white
       ctx.beginPath()
-      ctx.arc(thing.x, thing.y, 3, 0, Math.PI * 2)
+      ctx.arc(thing.x, drawY, 3 * lift, 0, Math.PI * 2)
       ctx.fill()
       ctx.fillStyle = '#222'
-      ctx.fillRect(thing.x - 1, thing.y - 1, 2, 2)
+      ctx.fillRect(thing.x - 1, drawY - 1, 2, 2)
     },
 
     /** Stand fan (feet at x,y). Idles on frame 0 of the cheer sheet. */
@@ -78,7 +105,10 @@
       const mood = thing.anim.name === 'boo' ? 'boo' : 'cheer'
       const key  = `fan-${thing.side}${thing.variant}-${mood}`
       if (sheets && sheets.ready(key)) {
-        const frame = thing.anim.fps === 0 ? 0 : Math.floor(thing.anim.t * thing.anim.fps + thing.phase)
+        // waveOffset (heat ripple) shifts the clock by seat position so hot
+        // stands roll like a wave rather than bouncing in lockstep.
+        const clock = thing.anim.t + (thing.anim.waveOffset ?? 0)
+        const frame = thing.anim.fps === 0 ? 0 : Math.floor(clock * thing.anim.fps + thing.phase)
         sheets.draw(ctx, key, frame, thing.x, thing.y, { flipX: thing.flipX })
         return
       }

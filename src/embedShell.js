@@ -1,3 +1,87 @@
+;(function () {
+  'use strict'
+
+  /**
+   * The game's own DOM shell (the #app subtree) + its full stylesheet, for the
+   * EMBEDDED (mounted) path only. mount.js builds SHELL_HTML inside a Shadow
+   * DOM root and injects EMBED_CSS as that shadow root's own <style> — Shadow
+   * DOM gives full style encapsulation in BOTH directions, so this can be a
+   * verbatim copy of styles/main.css (including its `*`/`html,body` rules,
+   * which simply match nothing inside a shadow tree — there is no <html>/
+   * <body> element in there) with no risk of leaking onto the embedding host
+   * page, and no risk of the host page's own styles bleeding in.
+   *
+   * The ONE real change from main.css: #app is `position:fixed; inset:0` there
+   * (the standalone page IS the viewport), which would make an embedded
+   * instance cover the whole browser window instead of just its widget. The
+   * override at the bottom gives it a normal, bounded, in-flow box instead —
+   * RenderEngine already sizes/letterboxes purely off the canvas's own
+   * offsetWidth/offsetHeight via ResizeObserver, so no game logic depends on
+   * this box being any particular size.
+   *
+   * Mirrors index.html's own #app markup + styles/main.css exactly (this is
+   * the embedded path; the standalone page is untouched and keeps using its
+   * own copies directly) — keep the two in sync when either changes.
+   */
+
+  const SHELL_HTML = `
+<div id="app">
+  <canvas id="game-canvas"></canvas>
+
+  <div id="ui-root">
+    <div id="screen-menu" class="screen screen--visible">
+      <div class="menu-panel">
+        <h1 id="menu-title" class="menu-title"></h1>
+        <p id="menu-subtitle" class="menu-subtitle"></p>
+        <p id="menu-keys" class="keys"></p>
+        <p id="menu-difficulty-heading" class="menu-heading-small"></p>
+        <div id="difficulty-select" class="difficulty-select"></div>
+        <div class="menu-actions">
+          <button type="button" id="btn-start" class="btn"><span class="btn__label"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-setup" class="screen" hidden>
+      <div class="menu-panel">
+        <h2 id="setup-title" class="menu-title menu-title--small"></h2>
+        <p id="setup-subtitle" class="menu-subtitle"></p>
+        <p id="setup-shape-heading" class="menu-heading-small"></p>
+        <div id="formation-select" class="difficulty-select"></div>
+        <p id="setup-power-heading" class="menu-heading-small"></p>
+        <div id="star-power-select" class="difficulty-select"></div>
+        <p id="setup-power-blurb" class="power-blurb"></p>
+        <div class="menu-actions">
+          <button type="button" id="btn-kickoff" class="btn"><span class="btn__label"></span></button>
+          <button type="button" id="btn-setup-back" class="btn btn--secondary"><span class="btn__label"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-over" class="screen" hidden>
+      <div class="menu-panel over-panel">
+        <h2 id="over-heading" class="over-heading"></h2>
+        <p id="over-score" class="over-score"></p>
+        <div class="menu-actions">
+          <button type="button" id="btn-rematch" class="btn"><span class="btn__label"></span></button>
+          <button type="button" id="btn-menu" class="btn btn--secondary"><span class="btn__label"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hud" hidden>
+      <div id="hud-legend"></div>
+      <div id="hud-score"></div>
+      <div id="hud-clock"></div>
+      <div id="hud-formation"></div>
+      <div id="hud-star"><div id="hud-star-fill"></div><span id="hud-star-hint" hidden></span></div>
+      <div id="hud-star-enemy"><div id="hud-star-enemy-fill"></div></div>
+    </div>
+    <div id="fx-layer"></div>
+  </div>
+</div>`
+
+  const EMBED_CSS = `
 /* Footie — cute irreverent pixel look. Chunky system fonts, no webfonts
    (must work offline over file://), no filters heavier than a text-shadow. */
 
@@ -234,3 +318,23 @@ html, body {
   from { transform: translate(-50%, -50%) scale(0.4); }
   to   { transform: translate(-50%, -50%) scale(1); }
 }
+
+/* ── Embedded-only override ─────────────────────────────────────────────
+   Standalone's #app is position:fixed;inset:0 because that page IS the
+   viewport. An embedding host's container is not the viewport — give #app a
+   normal, bounded, in-flow box instead so the game only occupies its own
+   widget area. 16:9 at three-pointer's own 960px width, for visual
+   consistency across games embedded in the same arcade context; footie has
+   no "native" size of its own to match (RenderEngine letterboxes to
+   whatever box the canvas actually gets, so this figure is a presentation
+   choice, not a functional constraint). */
+#app {
+  position: relative;
+  width: 960px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+}`
+
+  window.Footie.embedShell = { SHELL_HTML, EMBED_CSS }
+})()

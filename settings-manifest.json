@@ -1,0 +1,106 @@
+{
+  "displayName": "Footie",
+  "gameId": "footie",
+  "schemaVersion": 1,
+  "sections": [
+    {
+      "autoPopulate": false,
+      "entries": [
+        {
+          "default": 270,
+          "help": "Regulation time before full-time. Sudden death may extend it.",
+          "key": "match.timeSeconds",
+          "label": "Match length (seconds)",
+          "max": 600,
+          "min": 30,
+          "required": true,
+          "step": 10,
+          "type": "integer"
+        },
+        {
+          "default": true,
+          "help": "When the score is level at full time, up to 30 seconds of overtime are played — next goal wins. If still level (or with this off), the match is a draw.",
+          "key": "match.suddenDeathEnabled",
+          "label": "Golden goal overtime",
+          "type": "boolean"
+        },
+        {
+          "default": "normal",
+          "help": "The difficulty preselected for every player. Players can still change it on the menu.",
+          "key": "difficulty",
+          "label": "Default difficulty",
+          "options": [
+            {
+              "label": "Easy",
+              "value": "easy"
+            },
+            {
+              "label": "Normal",
+              "value": "normal"
+            },
+            {
+              "label": "Hard",
+              "value": "hard"
+            }
+          ],
+          "type": "select"
+        },
+        {
+          "default": "442",
+          "help": "The team shape preselected on the Team Management screen. Players can still change it before kickoff.",
+          "key": "formation",
+          "label": "Default formation",
+          "options": [
+            {
+              "label": "4-4-2",
+              "value": "442"
+            },
+            {
+              "label": "4-3-3",
+              "value": "433"
+            },
+            {
+              "label": "4-2-3-1",
+              "value": "4231"
+            }
+          ],
+          "type": "select"
+        },
+        {
+          "default": true,
+          "help": "Each side picks one special move charged by good play — the crowd heats up as it fills. Off hides the pick and the meter entirely.",
+          "key": "starPowerEnabled",
+          "label": "Star Power",
+          "type": "boolean"
+        },
+        {
+          "default": "screamer",
+          "help": "The star power preselected on the Team Management screen. Players can still change it before kickoff.",
+          "key": "starPower",
+          "label": "Default star power",
+          "options": [
+            {
+              "label": "Screamer",
+              "value": "screamer"
+            },
+            {
+              "label": "First Touch",
+              "value": "firstTouch"
+            },
+            {
+              "label": "Ghost Run",
+              "value": "ghostRun"
+            },
+            {
+              "label": "Flat-Footed",
+              "value": "flatFooted"
+            }
+          ],
+          "type": "select"
+        }
+      ],
+      "kind": "settings",
+      "title": "Match rules"
+    }
+  ]
+}

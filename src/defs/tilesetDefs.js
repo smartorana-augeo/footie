@@ -21,7 +21,7 @@
    * hand-mapping all 30 of them).
    */
   window.Footie.defs.TILESET_DEF = {
-    src: 'assets/Soccorpia Asset Pack/Environment/Soccorpia Stadium Tiles.png',
+    src: `${window.Footie.assetBase}assets/Soccorpia Asset Pack/Environment/Soccorpia Stadium Tiles.png`,
     tileW: 16,
     tileH: 16,
     sprites: {
@@ -38,7 +38,7 @@
   }
 
   /**
-   * Stadium band layout, in tile rows from the top of the 480×312 world:
+   * Stadium band layout, in tile rows from the top of the world:
    * rows of stands the fans occupy, the barrier wall, the pavement strip,
    * then the grass plane (which fieldDefs' GRASS mirrors in pixels).
    */
@@ -49,9 +49,10 @@
     grassFromRow: 6,              // y 96.. — grass bands
     grassBandTiles: 3,            // vertical stripe width, in tiles
     // Fan rows: feet y positions on the steps, with loose x spacing.
+    // World-width-agnostic: rows span inset .. world.w - inset.
     fanRows: [
-      { footY: 40, xStart: 28, xEnd: 452, spacing: 34 },
-      { footY: 58, xStart: 44, xEnd: 436, spacing: 34 },
+      { footY: 40, inset: 28, spacing: 34 },
+      { footY: 58, inset: 44, spacing: 34 },
     ],
   }
 })()

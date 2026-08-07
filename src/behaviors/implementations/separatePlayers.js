@@ -11,9 +11,13 @@
     return {
       update(thing, ctx, dt) {
         if (ctx.world.freeze) return
+        // Bodies on the turf don't shove: skip pairs where either party is
+        // down or mid-slide.
+        if (thing.downT > 0 || thing.slide) return
         const r = ctx.tuning.player.radius
         for (const other of ctx.world.players) {
           if (other === thing || other.alive === false) continue
+          if (other.downT > 0 || other.slide) continue
           const dx = thing.x - other.x
           const dy = thing.y - other.y
           const dist = Math.hypot(dx, dy)

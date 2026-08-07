@@ -102,9 +102,34 @@
       box(R.x, gb.top, gb.depth, gb.bottom - gb.top)
       box(R.x + R.w - gb.depth, gb.top, gb.depth, gb.bottom - gb.top)
 
-      // Penalty spots.
-      ctx.fillRect(R.x + pb.depth - 18, F.center.y, 1, 1)
-      ctx.fillRect(R.x + R.w - pb.depth + 18, F.center.y, 1, 1)
+      // Penalty spots, 12 yd from each goal line.
+      const spotL = R.x + F.penaltySpotDist
+      const spotR = R.x + R.w - F.penaltySpotDist
+      ctx.fillRect(spotL, F.center.y, 1, 1)
+      ctx.fillRect(spotR, F.center.y, 1, 1)
+
+      // Penalty arcs ("D"s): centre-circle radius around each spot, only the
+      // part outside the box. cos θ = (box edge − spot) / radius.
+      const r = F.centerCircleRadius
+      const half = Math.acos((R.x + pb.depth - spotL) / r)
+      ctx.beginPath()
+      ctx.arc(spotL + 0.5, F.center.y + 0.5, r, -half, half)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(spotR + 0.5, F.center.y + 0.5, r, Math.PI - half, Math.PI + half)
+      ctx.stroke()
+
+      // Corner arcs, 1 yd quarter circles inside each pitch corner.
+      const c = F.cornerRadius
+      const corner = (cx, cy, start) => {
+        ctx.beginPath()
+        ctx.arc(cx + 0.5, cy + 0.5, c, start, start + Math.PI / 2)
+        ctx.stroke()
+      }
+      corner(R.x, R.y, 0)                          // top-left: arc into the pitch
+      corner(R.x + R.w, R.y, Math.PI / 2)          // top-right
+      corner(R.x + R.w, R.y + R.h, Math.PI)        // bottom-right
+      corner(R.x, R.y + R.h, -Math.PI / 2)         // bottom-left
     }
 
     _paintGoals(ctx) {

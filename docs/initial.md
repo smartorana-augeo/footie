@@ -1678,3 +1678,122 @@ Penalty shootouts
 ```
 
 The intended game is a compact arcade soccer game, not a full soccer simulator.
+
+---
+
+# Upgrade addendum (2026-08) — 11v11, true-scale pitch, camera, Team Management, host settings
+
+This addendum records deliberate reversals of the original spec above. The
+historical spec is left untouched; where the two disagree, this section wins.
+
+## 11v11 (reverses the "Full 11v11 simulation" non-goal)
+
+The match is now 11v11. Rosters are generated per formation SHAPE from
+`src/defs/formationDefs.js` — shapes (4-4-2 / 4-3-3 / 4-2-3-1) are lines of
+banded players (DF/DM/MF/AM/FW) run through a parametric generator that emits
+mode anchor tables, kickoff spots, the roster (sprite variants 1..10) and the
+Shift cycle. The four tactical MODES (balanced/attack/defend/spread, Alt to
+cycle) are unchanged and orthogonal to the shape. The enemy always fields the
+default shape (4-4-2) in balanced mode — by design, do not "fix" the asymmetry.
+The goalie reuses an outfield kit (the pack ships exactly 10 outfield
+variants per team and no keeper kit).
+
+## True-to-scale pitch (replaces the 480×312 single-screen world)
+
+8 px/yd, per the standard 11-a-side diagram: pitch 115×74 yd → 920×592 world
+px inside a 968×720 world; penalty box 18 yd deep × 44 yd wide; goal box
+6×20 yd; penalty spot 12 yd; centre circle 10 yd radius; goal mouth 8 yd
+(64 px — larger than the old exaggerated 56 px, so still playable); 1 yd
+corner arcs; penalty-arc "D"s. All in `src/defs/fieldDefs.js`.
+
+## Ball-following camera (supersedes "Fixed camera — no scrolling")
+
+The view window is the old world size (480×312, `FIELD.view`) at the same
+integer zoom; `RenderEngine` gained viewW/viewH + a clamped camera and
+`FootieGame._updateCamera` lerps it toward the ball (`TUNING.camera`),
+snapping on match start. Pointer input maps through the camera via
+`toWorld`. Known tradeoff: the camera chases the BALL, so a Shift switch far
+from play can select an off-screen player; possession-change auto-switching
+keeps that rare.
+
+## Team Management screen
+
+New SETUP state between MENU and KICKOFF (`#screen-setup`): the player picks
+the formation shape before kickoff (persisted to localStorage under
+`FORMATIONS.storageKey`). Markup lives in THREE synced places — index.html,
+`src/embedShell.js` SHELL_HTML/EMBED_CSS, and styles/main.css.
+
+## Host settings (the treasure-chest contract)
+
+`settings-manifest.json` (emitted by `tools/emit-settings-manifest.mjs`, run
+via `npm run manifest:footie`; regenerating must be byte-identical to the
+committed file) declares the admin knobs: match length, sudden death,
+default difficulty, default formation. An embedding host passes stored
+values back at `GameWorkshopGame.mount(container, { config })`; the bridge
+declares `capabilities.hostBridge`. `src/defs/configDefs.js` is the single
+source of truth — it drives both the manifest and the merge/validate gate
+(any invalid known key → console.error + pure defaults). Host-provided
+difficulty/formation win as the INITIAL selection; player picks still work
+and persist locally.
+
+---
+
+# Upgrade addendum 2 (2026-08) — PES/Kopanito arcade controls, mechanics & Star Power
+
+Implements the trimmed five-minute-arcade design (Kopanito-inspired), scaled
+to our 11v11. Where this contradicts anything above (or addendum 1), this wins.
+
+## Controls — keyboard only (pointer gameplay removed; menus stay clickable)
+
+WASD/arrows move and AIM · J pass (hold = harder; cone-assisted ≤25°, no
+target → into space) / switch player without the ball · K tap shot, hold =
+PRECISE shot (world slows to 45%, pixel trajectory preview, lateral aim
+bends the ball, auto-fires at 0.6s) / slide tackle without the ball (aerial
+finish instead when an airborne ball is in reach: header/volley/bicycle by
+height band) · L lob/chip (hold = longer) · Shift sprint, with ball =
+knock-on (touch escapes above trap speed) · Space = Star Power · Alt cycles
+formation modes · Esc pause. InputEngine now tracks held keys + release
+edges (lowercased), cleared on blur.
+
+## Mechanics
+
+Ball has pseudo-3D height (z/vz, gravity 300, shadow stays grounded);
+crossbar at 21px (8ft) — above it bounces (arcade fiction: invisible wall,
+preserves no-corners); outfielders trap below 12, keepers claim to 26
+(crosses). Curve = decaying lateral acceleration. Slide tackles knock down
+anyone contacted (0.8s, friendly fire, recovery 0.65/0.35), strike the ball
+loose (165 — savable), can score, tick downT; poke toes an exposed ball away
+from the POKER (never toward the carrier's own net). Goalkeeper: 4 states
+(hold-line / track ≤¼ box depth / claim near the goal box only /
+emergency-save from 0.9s out) + distribution ≤1.25s to an unmarked defender.
+Difficulty no longer changes movement speed (reaction/aim/slide-aggression
+only).
+
+## Match format
+
+4:30 regulation; level at full time → golden-goal overtime capped at 0:30 →
+draw. Goal = 0.75s celebration + 1.25s reset + auto kickoff.
+GamePlayCompleted now carries outcome 'win'|'lose'|'draw' plus a `won`
+boolean.
+
+## Star Power (the super system)
+
+The crowd IS the meter: each side's stand bounces harder as its meter fills
+(tiers at 0/25/50/75/100 — fraction of fans + fps + seat-stagger wave;
+eruption at full and on activation, rival side boos). Meter: pass +6,
+line-breaking pass +9, clean tackle +12, shot on target +15, goal +22,
+concede +10; max 100, one stored, resets on use, survives goals within a
+match. One power per side, picked pre-match on Team Management (enemy rolls
+random): **Screamer** (5s window — next hard shot pierces ×1.25 uncapped,
+flattens outfielders 1.1s, keepers immune and still catch), **First Touch**
+(1.25s — drags the loose ball to you, bends shots, keeper-secured immune),
+**Ghost Run** (hold Space + aim, release — blink 120px with the ball, never
+into a goal box), **Flat-Footed** (freezes non-GK opponents + the ball in a
+90px radius for 0.9s; airborne ball drops on thaw). Activation slow-mo beat;
+world.timeScale is owned by FootieGame (min of precise-shot and star
+requests); charges accrue in wall time. Admin knobs: starPowerEnabled +
+default starPower joined the settings manifest; suddenDeathEnabled is now
+labeled "Golden goal overtime".
+
+All new overlay/FX graphics follow the pixel language: 1px pixel-aligned
+strokes and square 2px particle "pixels" — same family as the field markings.
