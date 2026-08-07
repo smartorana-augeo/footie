@@ -25,6 +25,22 @@
         </div>
       </div>
 
+      <div id="screen-setup" class="screen" hidden>
+        <div class="menu-panel">
+          <h2 id="setup-title" class="menu-title menu-title--small"></h2>
+          <p id="setup-subtitle" class="menu-subtitle"></p>
+          <p id="setup-shape-heading" class="menu-heading-small"></p>
+          <div id="formation-select" class="difficulty-select"></div>
+          <p id="setup-power-heading" class="menu-heading-small"></p>
+          <div id="star-power-select" class="difficulty-select"></div>
+          <p id="setup-power-blurb" class="power-blurb"></p>
+          <div class="menu-actions">
+            <button type="button" id="btn-kickoff" class="btn"><span class="btn__label"></span></button>
+            <button type="button" id="btn-setup-back" class="btn btn--secondary"><span class="btn__label"></span></button>
+          </div>
+        </div>
+      </div>
+
       <div id="screen-over" class="screen" hidden>
         <div class="menu-panel over-panel">
           <h2 id="over-heading" class="over-heading"></h2>
@@ -41,6 +57,8 @@
         <div id="hud-score"></div>
         <div id="hud-clock"></div>
         <div id="hud-formation"></div>
+        <div id="hud-star"><div id="hud-star-fill"></div><span id="hud-star-hint" hidden></span></div>
+        <div id="hud-star-enemy"><div id="hud-star-enemy-fill"></div></div>
       </div>
       <div id="fx-layer"></div>
     </div>
@@ -58,12 +76,14 @@
   <script src="src/engine/RenderEngine.js"></script>
   <script src="src/engine/BehaviorEngine.js"></script>
   <script src="src/defs/tuningDefs.js"></script>
+  <script src="src/defs/starDefs.js"></script>
   <script src="src/defs/fieldDefs.js"></script>
   <script src="src/defs/tilesetDefs.js"></script>
   <script src="src/defs/spriteDefs.js"></script>
   <script src="src/defs/formationDefs.js"></script>
   <script src="src/defs/teamDefs.js"></script>
   <script src="src/defs/uiDefs.js"></script>
+  <script src="src/defs/configDefs.js"></script>
   <script src="src/behaviors/kickHelper.js"></script>
   <script src="src/behaviors/implementations/moveToTarget.js"></script>
   <script src="src/behaviors/implementations/controlInput.js"></script>
@@ -72,6 +92,8 @@
   <script src="src/behaviors/implementations/possession.js"></script>
   <script src="src/behaviors/implementations/aiFieldPlayer.js"></script>
   <script src="src/behaviors/implementations/aiGoalie.js"></script>
+  <script src="src/behaviors/implementations/slideTackle.js"></script>
+  <script src="src/behaviors/implementations/starPower.js"></script>
   <script src="src/behaviors/implementations/separatePlayers.js"></script>
   <script src="src/behaviors/implementations/animate.js"></script>
   <script src="src/behaviors/implementations/animateFan.js"></script>
@@ -79,6 +101,8 @@
   <script src="src/things/createThing.js"></script>
   <script src="src/things/painters.js"></script>
   <script src="src/game/StadiumBuilder.js"></script>
+  <script src="src/game/overlayPainter.js"></script>
+  <script src="src/game/StarFx.js"></script>
   <script src="src/game/ui/UISystem.js"></script>
   <script src="src/game/FootieGame.js"></script>
   <script src="src/main.js"></script>
@@ -95,7 +119,7 @@
         else {
           var expect = {
             engine: ['EventBus', 'GameLoop', 'GameStateMachine', 'InputEngine', 'TilesetEngine', 'SpriteSheetEngine', 'RenderEngine', 'BehaviorEngine'],
-            defs:   ['TUNING', 'FIELD', 'TILESET_DEF', 'SPRITE_DEF', 'FORMATIONS', 'TEAM_DEFS', 'UI'],
+            defs:   ['TUNING', 'STAR', 'FIELD', 'TILESET_DEF', 'SPRITE_DEF', 'FORMATIONS', 'TEAM_DEFS', 'UI', 'CONFIG'],
             things: ['createThing', 'painters'],
             game:   ['StadiumBuilder', 'UISystem', 'FootieGame'],
           }
