@@ -6,12 +6,13 @@
    *
    *   WASD / arrows  move; the same vector is the AIM for every action
    *   J              with ball: pass (hold = harder); without: switch player
-   *   K              with ball: tap shot, or hold past input.holdThreshold for
+   *   Space          with ball: tap shot, or hold past input.holdThreshold for
    *                  the PRECISE shot (world slows, trajectory preview, lateral
    *                  aim bends the ball); without ball: aerial finish if an
    *                  airborne ball is in reach, otherwise slide tackle
    *   L              lob/chip (hold = longer)
    *   Shift          sprint; with the ball it knocks it ahead (kick-and-run)
+   *   K              Star Power — owned by starPower.js, never read here
    *
    * Charge state lives in `world.control` (one controlled player at a time;
    * FootieGame clears it on switch/kickoff). Charges accrue in REAL time
@@ -176,9 +177,9 @@
         const ball = world.ball
 
         // Incapacitated: drop every charge (this also releases the precise
-        // slow-mo — FootieGame reads control.k.precise) and give no input.
+        // slow-mo — FootieGame reads control.shot.precise) and give no input.
         if (thing.downT > 0 || thing.frozenT > 0 || thing.slide) {
-          control.j = control.k = control.l = null
+          control.j = control.shot = control.l = null
           control.indicator = null
           thing.moveDir = null
           thing.sprinting = false
@@ -195,7 +196,7 @@
         // target-driven — except mid-precise-shot, where the feet plant and
         // the keys become pure aim.
         thing.moveTarget = null
-        thing.moveDir = control.k?.precise ? null : dir
+        thing.moveDir = control.shot?.precise ? null : dir
 
         // ── Shift: sprint / knock-on ─────────────────────────────────────
         thing.sprinting = !!input.held['shift']
@@ -238,45 +239,45 @@
         }
 
         // ── K: shot / precise shot / aerial finish / slide tackle ────────
-        if (input.pressed.includes('k')) {
+        if (input.pressed.includes(' ')) {
           if (hasBall) {
-            control.k = { t: 0, precise: false, curve: 0, charge: 0, aim: { ...aim } }
+            control.shot = { t: 0, precise: false, curve: 0, charge: 0, aim: { ...aim } }
           } else {
             const kind = aerialKind(ctx, thing)
             if (kind) aerialStrike(ctx, thing, kind)
             else if (F.behaviors.helpers.startSlide) F.behaviors.helpers.startSlide(thing, ctx)
           }
         }
-        if (control.k) {
-          if (!hasBall) { control.k = null; control.indicator = null }
+        if (control.shot) {
+          if (!hasBall) { control.shot = null; control.indicator = null }
           else {
-            control.k.t += realDt
-            if (!control.k.precise && control.k.t >= T.input.holdThreshold) {
-              control.k.precise = true          // FootieGame slows the world off this flag
-              control.k.aim = { ...aim }        // trajectory locks to the aim at entry…
+            control.shot.t += realDt
+            if (!control.shot.precise && control.shot.t >= T.input.holdThreshold) {
+              control.shot.precise = true          // FootieGame slows the world off this flag
+              control.shot.aim = { ...aim }        // trajectory locks to the aim at entry…
             }
             const S = T.shot.precise
-            if (control.k.precise) {
+            if (control.shot.precise) {
               // …and sideways input from here on bends the ball instead.
               if (dir) {
-                const lateral = dir.x * -control.k.aim.y + dir.y * control.k.aim.x
-                control.k.curve = clamp(control.k.curve + lateral * S.curveRate * realDt, -S.curveMax, S.curveMax)
+                const lateral = dir.x * -control.shot.aim.y + dir.y * control.shot.aim.x
+                control.shot.curve = clamp(control.shot.curve + lateral * S.curveRate * realDt, -S.curveMax, S.curveMax)
               }
-              thing.faceX = control.k.aim.x
-              thing.faceY = control.k.aim.y
-              control.k.charge = clamp(
-                (control.k.t - T.input.holdThreshold) / (S.maxCharge - T.input.holdThreshold), 0, 1)
-              control.indicator = simulateTrajectory(ctx, thing, control.k.aim,
-                lerp(S.powerMin, S.powerMax, control.k.charge),
-                lerp(S.vzMin, S.vzMax, control.k.charge), control.k.curve)
+              thing.faceX = control.shot.aim.x
+              thing.faceY = control.shot.aim.y
+              control.shot.charge = clamp(
+                (control.shot.t - T.input.holdThreshold) / (S.maxCharge - T.input.holdThreshold), 0, 1)
+              control.indicator = simulateTrajectory(ctx, thing, control.shot.aim,
+                lerp(S.powerMin, S.powerMax, control.shot.charge),
+                lerp(S.vzMin, S.vzMax, control.shot.charge), control.shot.curve)
             }
-            const autoFire = control.k.precise && control.k.t >= S.maxCharge
-            if (input.released.includes('k') || autoFire) {
-              if (control.k.precise) {
+            const autoFire = control.shot.precise && control.shot.t >= S.maxCharge
+            if (input.released.includes(' ') || autoFire) {
+              if (control.shot.precise) {
                 F.behaviors.helpers.kick(ctx, thing,
-                  thing.x + control.k.aim.x * 100, thing.y + control.k.aim.y * 100,
-                  lerp(S.powerMin, S.powerMax, control.k.charge),
-                  { vz: lerp(S.vzMin, S.vzMax, control.k.charge), curve: control.k.curve })
+                  thing.x + control.shot.aim.x * 100, thing.y + control.shot.aim.y * 100,
+                  lerp(S.powerMin, S.powerMax, control.shot.charge),
+                  { vz: lerp(S.vzMin, S.vzMax, control.shot.charge), curve: control.shot.curve })
               } else {
                 // Tap shot: straight at the mouth, biased by vertical aim.
                 const gx = ctx.field.attackGoalX(thing.team)
@@ -284,7 +285,7 @@
                 const gy = ctx.field.center.y + aim.y * half
                 F.behaviors.helpers.kick(ctx, thing, gx, gy, T.shot.tapPower, { vz: 10 })
               }
-              control.k = null
+              control.shot = null
               control.indicator = null
             }
           }

@@ -587,12 +587,12 @@
       const w = this.world
 
       // Slow motion — single owner, two sources: a held precise-shot charge
-      // (world.control.k.precise, set by controlInput) and a Star Power beat
+      // (world.control.shot.precise, set by controlInput) and a Star Power beat
       // (this._slowMoT, set by the star event wiring). Only the WORLD slows:
       // behaviors get scaled dt, while state timers, the match clock, the
       // camera and the HUD keep wall time.
       this._slowMoT = Math.max(0, this._slowMoT - dt)
-      const preciseScale = w.control?.k?.precise ? TUNING.shot.precise.timeScale : 1
+      const preciseScale = w.control?.shot?.precise ? TUNING.shot.precise.timeScale : 1
       const starScale    = this._slowMoT > 0 ? this._slowMoScale : 1
       w.timeScale = Math.min(preciseScale, starScale)
       const sdt = dt * w.timeScale

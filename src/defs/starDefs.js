@@ -5,7 +5,7 @@
    * Star Power system — the crowd IS the meter. All params are pure data,
    * consumed by behaviors/implementations/starPower.js + FootieGame +
    * animateFan + StarFx. Meter fills from good play; a full crowd erupts
-   * and Space spends it on the equipped power.
+   * and K spends it on the equipped power.
    */
   window.Footie.defs.STAR = {
     enabledDefault: true,
@@ -19,7 +19,7 @@
                     knockdownSeconds: 1.1, hitRadius: 10, pierceSeconds: 2 },
       // First Touch: drags the loose ball to the activator — even mid-shot.
       firstTouch: { durationSeconds: 1.25, pullAccel: 420, maxRange: 160 },
-      // Ghost Run: hold space, aim with movement keys, release to blink 15yd
+      // Ghost Run: hold K, aim with movement keys, release to blink 15yd
       // with the ball — never into a goal box.
       ghostRun:   { distance: 120, holdMaxSeconds: 2.0, fieldMargin: 10,
                     goalAreaMargin: 8, trailSeconds: 0.4 },

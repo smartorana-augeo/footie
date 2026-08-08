@@ -19,11 +19,11 @@
         ['move',       'wasd / arrows'],
         ['pass',       'j — hold: harder'],
         ['switch',     'j (no ball)'],
-        ['shoot',      'k — hold: precise'],
-        ['tackle',     'k (no ball)'],
+        ['shoot',      'space — hold: precise'],
+        ['tackle',     'space (no ball)'],
         ['lob',        'l — hold: longer'],
         ['sprint',     'shift — knock-on with ball'],
-        ['star power', 'space (when full)'],
+        ['star power', 'k (when full)'],
         ['formation',  'alt'],
         ['pause',      'esc'],
       ],
@@ -37,7 +37,7 @@
       powers: [
         { id: 'screamer',   label: 'Screamer',    blurb: 'Charge up — your next shot flattens everyone in its path.' },
         { id: 'firstTouch', label: 'First Touch', blurb: 'Drag the loose ball to your feet — even mid-shot.' },
-        { id: 'ghostRun',   label: 'Ghost Run',   blurb: 'Hold space, aim, release — blink past the line, ball and all.' },
+        { id: 'ghostRun',   label: 'Ghost Run',   blurb: 'Hold K, aim, release — blink past the line, ball and all.' },
         { id: 'flatFooted', label: 'Flat-Footed', blurb: 'Catch every opponent near you flat-footed for a beat.' },
       ],
       kickoffLabel: 'Kick Off',
@@ -48,7 +48,7 @@
       teams: { player: 'Player', enemy: 'Enemy' },
       formationPrefix: 'Formation: ',
       starLabel: 'STAR',
-      starReadyHint: 'SPACE',
+      starReadyHint: 'K',
     },
 
     toasts: {

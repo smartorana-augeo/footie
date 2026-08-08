@@ -12,7 +12,7 @@
    *   meter  { player, enemy }   0..STAR.meter.max
    *   power  { player, enemy }   chosen power ids
    *   active { player, enemy }   { id, t, activator } while an effect runs
-   *   ghostAim                   { t, aim } while the human holds Space aiming
+   *   ghostAim                   { t, aim } while the human holds K aiming
    *   pendingPierce              set by FootieGame's kick handler (Screamer)
    *   threat                     { t } after a player shot-on-target (AI bait)
    *   enemyAI { checkT }         throttled enemy decision clock
@@ -181,19 +181,19 @@
     const power = star.power.player
 
     if (power === 'ghostRun') {
-      // Hold Space to aim with the movement keys, release to blink.
-      if (!star.ghostAim && full && input.pressed.includes(' ')) star.ghostAim = { t: 0 }
+      // Hold K to aim with the movement keys, release to blink.
+      if (!star.ghostAim && full && input.pressed.includes('k')) star.ghostAim = { t: 0 }
       if (star.ghostAim) {
         if (!full) { star.ghostAim = null; return }
         star.ghostAim.t += 0   // aged below with dt-free landing preview
         star.ghostAim.aim = aimOf(me)
         star.ghostAim.landing = ghostLanding(ctx, me, star.ghostAim.aim)
-        if (input.released.includes(' ') || (star.ghostAim.holdT ?? 0) >= STAR.powers.ghostRun.holdMaxSeconds) {
+        if (input.released.includes('k') || (star.ghostAim.holdT ?? 0) >= STAR.powers.ghostRun.holdMaxSeconds) {
           activate(ctx, 'player', 'ghostRun', me)
           star.ghostAim = null
         }
       }
-    } else if (full && input.pressed.includes(' ')) {
+    } else if (full && input.pressed.includes('k')) {
       activate(ctx, 'player', power, me)
     }
   }

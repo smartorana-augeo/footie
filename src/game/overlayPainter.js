@@ -47,7 +47,7 @@
   }
 
   function paintShotPreview(ctx, world) {
-    const k = world.control.k
+    const k = world.control.shot
     const pts = world.control.indicator
     if (!k || !k.precise || !pts || pts.length === 0) return
     ctx.save()

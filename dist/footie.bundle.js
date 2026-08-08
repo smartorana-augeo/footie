@@ -747,7 +747,7 @@ window.Footie = {
    * Star Power system — the crowd IS the meter. All params are pure data,
    * consumed by behaviors/implementations/starPower.js + FootieGame +
    * animateFan + StarFx. Meter fills from good play; a full crowd erupts
-   * and Space spends it on the equipped power.
+   * and K spends it on the equipped power.
    */
   window.Footie.defs.STAR = {
     enabledDefault: true,
@@ -761,7 +761,7 @@ window.Footie = {
                     knockdownSeconds: 1.1, hitRadius: 10, pierceSeconds: 2 },
       // First Touch: drags the loose ball to the activator — even mid-shot.
       firstTouch: { durationSeconds: 1.25, pullAccel: 420, maxRange: 160 },
-      // Ghost Run: hold space, aim with movement keys, release to blink 15yd
+      // Ghost Run: hold K, aim with movement keys, release to blink 15yd
       // with the ball — never into a goal box.
       ghostRun:   { distance: 120, holdMaxSeconds: 2.0, fieldMargin: 10,
                     goalAreaMargin: 8, trailSeconds: 0.4 },
@@ -1388,11 +1388,11 @@ window.Footie = {
         ['move',       'wasd / arrows'],
         ['pass',       'j — hold: harder'],
         ['switch',     'j (no ball)'],
-        ['shoot',      'k — hold: precise'],
-        ['tackle',     'k (no ball)'],
+        ['shoot',      'space — hold: precise'],
+        ['tackle',     'space (no ball)'],
         ['lob',        'l — hold: longer'],
         ['sprint',     'shift — knock-on with ball'],
-        ['star power', 'space (when full)'],
+        ['star power', 'k (when full)'],
         ['formation',  'alt'],
         ['pause',      'esc'],
       ],
@@ -1406,7 +1406,7 @@ window.Footie = {
       powers: [
         { id: 'screamer',   label: 'Screamer',    blurb: 'Charge up — your next shot flattens everyone in its path.' },
         { id: 'firstTouch', label: 'First Touch', blurb: 'Drag the loose ball to your feet — even mid-shot.' },
-        { id: 'ghostRun',   label: 'Ghost Run',   blurb: 'Hold space, aim, release — blink past the line, ball and all.' },
+        { id: 'ghostRun',   label: 'Ghost Run',   blurb: 'Hold K, aim, release — blink past the line, ball and all.' },
         { id: 'flatFooted', label: 'Flat-Footed', blurb: 'Catch every opponent near you flat-footed for a beat.' },
       ],
       kickoffLabel: 'Kick Off',
@@ -1417,7 +1417,7 @@ window.Footie = {
       teams: { player: 'Player', enemy: 'Enemy' },
       formationPrefix: 'Formation: ',
       starLabel: 'STAR',
-      starReadyHint: 'SPACE',
+      starReadyHint: 'K',
     },
 
     toasts: {
@@ -1768,12 +1768,13 @@ window.Footie = {
    *
    *   WASD / arrows  move; the same vector is the AIM for every action
    *   J              with ball: pass (hold = harder); without: switch player
-   *   K              with ball: tap shot, or hold past input.holdThreshold for
+   *   Space          with ball: tap shot, or hold past input.holdThreshold for
    *                  the PRECISE shot (world slows, trajectory preview, lateral
    *                  aim bends the ball); without ball: aerial finish if an
    *                  airborne ball is in reach, otherwise slide tackle
    *   L              lob/chip (hold = longer)
    *   Shift          sprint; with the ball it knocks it ahead (kick-and-run)
+   *   K              Star Power — owned by starPower.js, never read here
    *
    * Charge state lives in `world.control` (one controlled player at a time;
    * FootieGame clears it on switch/kickoff). Charges accrue in REAL time
@@ -1938,9 +1939,9 @@ window.Footie = {
         const ball = world.ball
 
         // Incapacitated: drop every charge (this also releases the precise
-        // slow-mo — FootieGame reads control.k.precise) and give no input.
+        // slow-mo — FootieGame reads control.shot.precise) and give no input.
         if (thing.downT > 0 || thing.frozenT > 0 || thing.slide) {
-          control.j = control.k = control.l = null
+          control.j = control.shot = control.l = null
           control.indicator = null
           thing.moveDir = null
           thing.sprinting = false
@@ -1957,7 +1958,7 @@ window.Footie = {
         // target-driven — except mid-precise-shot, where the feet plant and
         // the keys become pure aim.
         thing.moveTarget = null
-        thing.moveDir = control.k?.precise ? null : dir
+        thing.moveDir = control.shot?.precise ? null : dir
 
         // ── Shift: sprint / knock-on ─────────────────────────────────────
         thing.sprinting = !!input.held['shift']
@@ -2000,45 +2001,45 @@ window.Footie = {
         }
 
         // ── K: shot / precise shot / aerial finish / slide tackle ────────
-        if (input.pressed.includes('k')) {
+        if (input.pressed.includes(' ')) {
           if (hasBall) {
-            control.k = { t: 0, precise: false, curve: 0, charge: 0, aim: { ...aim } }
+            control.shot = { t: 0, precise: false, curve: 0, charge: 0, aim: { ...aim } }
           } else {
             const kind = aerialKind(ctx, thing)
             if (kind) aerialStrike(ctx, thing, kind)
             else if (F.behaviors.helpers.startSlide) F.behaviors.helpers.startSlide(thing, ctx)
           }
         }
-        if (control.k) {
-          if (!hasBall) { control.k = null; control.indicator = null }
+        if (control.shot) {
+          if (!hasBall) { control.shot = null; control.indicator = null }
           else {
-            control.k.t += realDt
-            if (!control.k.precise && control.k.t >= T.input.holdThreshold) {
-              control.k.precise = true          // FootieGame slows the world off this flag
-              control.k.aim = { ...aim }        // trajectory locks to the aim at entry…
+            control.shot.t += realDt
+            if (!control.shot.precise && control.shot.t >= T.input.holdThreshold) {
+              control.shot.precise = true          // FootieGame slows the world off this flag
+              control.shot.aim = { ...aim }        // trajectory locks to the aim at entry…
             }
             const S = T.shot.precise
-            if (control.k.precise) {
+            if (control.shot.precise) {
               // …and sideways input from here on bends the ball instead.
               if (dir) {
-                const lateral = dir.x * -control.k.aim.y + dir.y * control.k.aim.x
-                control.k.curve = clamp(control.k.curve + lateral * S.curveRate * realDt, -S.curveMax, S.curveMax)
+                const lateral = dir.x * -control.shot.aim.y + dir.y * control.shot.aim.x
+                control.shot.curve = clamp(control.shot.curve + lateral * S.curveRate * realDt, -S.curveMax, S.curveMax)
               }
-              thing.faceX = control.k.aim.x
-              thing.faceY = control.k.aim.y
-              control.k.charge = clamp(
-                (control.k.t - T.input.holdThreshold) / (S.maxCharge - T.input.holdThreshold), 0, 1)
-              control.indicator = simulateTrajectory(ctx, thing, control.k.aim,
-                lerp(S.powerMin, S.powerMax, control.k.charge),
-                lerp(S.vzMin, S.vzMax, control.k.charge), control.k.curve)
+              thing.faceX = control.shot.aim.x
+              thing.faceY = control.shot.aim.y
+              control.shot.charge = clamp(
+                (control.shot.t - T.input.holdThreshold) / (S.maxCharge - T.input.holdThreshold), 0, 1)
+              control.indicator = simulateTrajectory(ctx, thing, control.shot.aim,
+                lerp(S.powerMin, S.powerMax, control.shot.charge),
+                lerp(S.vzMin, S.vzMax, control.shot.charge), control.shot.curve)
             }
-            const autoFire = control.k.precise && control.k.t >= S.maxCharge
-            if (input.released.includes('k') || autoFire) {
-              if (control.k.precise) {
+            const autoFire = control.shot.precise && control.shot.t >= S.maxCharge
+            if (input.released.includes(' ') || autoFire) {
+              if (control.shot.precise) {
                 F.behaviors.helpers.kick(ctx, thing,
-                  thing.x + control.k.aim.x * 100, thing.y + control.k.aim.y * 100,
-                  lerp(S.powerMin, S.powerMax, control.k.charge),
-                  { vz: lerp(S.vzMin, S.vzMax, control.k.charge), curve: control.k.curve })
+                  thing.x + control.shot.aim.x * 100, thing.y + control.shot.aim.y * 100,
+                  lerp(S.powerMin, S.powerMax, control.shot.charge),
+                  { vz: lerp(S.vzMin, S.vzMax, control.shot.charge), curve: control.shot.curve })
               } else {
                 // Tap shot: straight at the mouth, biased by vertical aim.
                 const gx = ctx.field.attackGoalX(thing.team)
@@ -2046,7 +2047,7 @@ window.Footie = {
                 const gy = ctx.field.center.y + aim.y * half
                 F.behaviors.helpers.kick(ctx, thing, gx, gy, T.shot.tapPower, { vz: 10 })
               }
-              control.k = null
+              control.shot = null
               control.indicator = null
             }
           }
@@ -2995,7 +2996,7 @@ window.Footie = {
    *   meter  { player, enemy }   0..STAR.meter.max
    *   power  { player, enemy }   chosen power ids
    *   active { player, enemy }   { id, t, activator } while an effect runs
-   *   ghostAim                   { t, aim } while the human holds Space aiming
+   *   ghostAim                   { t, aim } while the human holds K aiming
    *   pendingPierce              set by FootieGame's kick handler (Screamer)
    *   threat                     { t } after a player shot-on-target (AI bait)
    *   enemyAI { checkT }         throttled enemy decision clock
@@ -3164,19 +3165,19 @@ window.Footie = {
     const power = star.power.player
 
     if (power === 'ghostRun') {
-      // Hold Space to aim with the movement keys, release to blink.
-      if (!star.ghostAim && full && input.pressed.includes(' ')) star.ghostAim = { t: 0 }
+      // Hold K to aim with the movement keys, release to blink.
+      if (!star.ghostAim && full && input.pressed.includes('k')) star.ghostAim = { t: 0 }
       if (star.ghostAim) {
         if (!full) { star.ghostAim = null; return }
         star.ghostAim.t += 0   // aged below with dt-free landing preview
         star.ghostAim.aim = aimOf(me)
         star.ghostAim.landing = ghostLanding(ctx, me, star.ghostAim.aim)
-        if (input.released.includes(' ') || (star.ghostAim.holdT ?? 0) >= STAR.powers.ghostRun.holdMaxSeconds) {
+        if (input.released.includes('k') || (star.ghostAim.holdT ?? 0) >= STAR.powers.ghostRun.holdMaxSeconds) {
           activate(ctx, 'player', 'ghostRun', me)
           star.ghostAim = null
         }
       }
-    } else if (full && input.pressed.includes(' ')) {
+    } else if (full && input.pressed.includes('k')) {
       activate(ctx, 'player', power, me)
     }
   }
@@ -3776,7 +3777,7 @@ window.Footie = {
   }
 
   function paintShotPreview(ctx, world) {
-    const k = world.control.k
+    const k = world.control.shot
     const pts = world.control.indicator
     if (!k || !k.precise || !pts || pts.length === 0) return
     ctx.save()
@@ -4788,12 +4789,12 @@ window.Footie = {
       const w = this.world
 
       // Slow motion — single owner, two sources: a held precise-shot charge
-      // (world.control.k.precise, set by controlInput) and a Star Power beat
+      // (world.control.shot.precise, set by controlInput) and a Star Power beat
       // (this._slowMoT, set by the star event wiring). Only the WORLD slows:
       // behaviors get scaled dt, while state timers, the match clock, the
       // camera and the HUD keep wall time.
       this._slowMoT = Math.max(0, this._slowMoT - dt)
-      const preciseScale = w.control?.k?.precise ? TUNING.shot.precise.timeScale : 1
+      const preciseScale = w.control?.shot?.precise ? TUNING.shot.precise.timeScale : 1
       const starScale    = this._slowMoT > 0 ? this._slowMoScale : 1
       w.timeScale = Math.min(preciseScale, starScale)
       const sdt = dt * w.timeScale
